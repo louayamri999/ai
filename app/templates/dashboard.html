@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Practitioner Dashboard{% endblock %}
+{% block header_title %}Clinical Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper fade-in">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner glass-panel">
+        <div class="welcome-text">
+            <h2>Welcome Back, Dr. {{ session.get('username') }}</h2>
+            <p>The neural networks are loaded and ready. You can perform new patient diagnostics or review database records.</p>
+        </div>
+        <div class="welcome-actions">
+            <a href="{{ url_for('predict') }}" class="btn-primary">
+                <span class="material-symbols-outlined">add_photo_alternate</span>
+                <span>New Diagnostic Scan</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper benign">
+                <span class="material-symbols-outlined">group</span>
+            </div>
+            <div class="stat-info">
+                <p class="stat-label">Total Patients Analyzed</p>
+                <h3 class="stat-value">{{ total_count }}</h3>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper malignant">
+                <span class="material-symbols-outlined">skull</span>
+            </div>
+            <div class="stat-info">
+                <p class="stat-label">Malignant Lesions</p>
+                <h3 class="stat-value text-danger">{{ malignant_count }}</h3>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper success">
+                <span class="material-symbols-outlined">health_and_safety</span>
+            </div>
+            <div class="stat-info">
+                <p class="stat-label">Benign Lesions</p>
+                <h3 class="stat-value text-success">{{ benign_count }}</h3>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper warning">
+                <span class="material-symbols-outlined">monitoring</span>
+            </div>
+            <div class="stat-info">
+                <p class="stat-label">Malignancy Risk Index</p>
+                <h3 class="stat-value text-warning">{{ risk_percentage }}%</h3>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Grid (Recent Records + Shortcuts) -->
+    <div class="dashboard-grid">
+        <!-- Recent Patients -->
+        <div class="grid-card glass-panel main-col">
+            <div class="card-header">
+                <h3>Recent Diagnostic Records</h3>
+                <a href="{{ url_for('patients') }}" class="btn-link">View All Patients</a>
+            </div>
+            
+            <div class="table-responsive">
+                {% if recent_patients %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Age / Sex</th>
+                            <th>Diagnostic Output</th>
+                            <th>Confidence</th>
+                            <th>Date Scanned</th>
+                            <th>Report</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in recent_patients %}
+                        <tr>
+                            <td class="font-bold">{{ patient.name }}</td>
+                            <td>{{ patient.age }} / {{ patient.gender }}</td>
+                            <td>
+                                <span class="badge {% if patient.prediction == 'Malignant' %}badge-danger{% else %}badge-success{% endif %}">
+                                    {{ patient.prediction }}
+                                </span>
+                            </td>
+                            <td>{{ patient.confidence }}%</td>
+                            <td>{{ patient.created_at.split(' ')[0] }}</td>
+                            <td>
+                                <a href="{{ url_for('result', patient_id=patient.id) }}" class="btn-icon" title="View Diagnostics Report">
+                                    <span class="material-symbols-outlined text-primary">analytics</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <span class="material-symbols-outlined empty-icon">folder_open</span>
+                    <p class="empty-title">No Diagnostics Performed Yet</p>
+                    <p class="empty-desc">Upload a clinical image of a skin lesion to perform your first classification.</p>
+                    <a href="{{ url_for('predict') }}" class="btn-primary btn-sm">
+                        <span class="material-symbols-outlined">add_photo_alternate</span>
+                        <span>Start First Scan</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Clinical Guide -->
+        <div class="grid-card glass-panel side-col">
+            <div class="card-header">
+                <h3>System Information</h3>
+            </div>
+            <div class="system-info-list">
+                <div class="system-info-item">
+                    <span class="info-label">Neural Network</span>
+                    <span class="info-val">VGG16 Transfer Learnt</span>
+                </div>
+                <div class="system-info-item">
+                    <span class="info-label">Input Size</span>
+                    <span class="info-val">224 x 224 Pixels</span>
+                </div>
+                <div class="system-info-item">
+                    <span class="info-label">Decision Boundary</span>
+                    <span class="info-val">0.2976 (Precision-Recall Optimized)</span>
+                </div>
+                <div class="system-info-item">
+                    <span class="info-label">Status</span>
+                    <span class="info-val text-success">
+                        <span class="status-indicator online"></span> Online
+                    </span>
+                </div>
+            </div>
+            
+            <div class="quick-tips-box">
+                <h4>🔬 Neural Model Guidance</h4>
+                <p>Ensure uploaded skin lesion images are cropped tightly around the lesion, taken under bright, balanced lighting, and are clear of high hair density to achieve maximum prediction accuracy.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

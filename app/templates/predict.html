@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}New Diagnostic Scan{% endblock %}
+{% block header_title %}Lesion Classification Portal{% endblock %}
+
+{% block content %}
+<div class="predict-wrapper fade-in">
+    <div class="glass-panel diagnostic-card">
+        <div class="card-header-accented">
+            <span class="material-symbols-outlined header-icon">biotech</span>
+            <div class="header-text">
+                <h2>Neural Diagnostic Scan</h2>
+                <p>Register patient information and upload a high-resolution dermoscopic image of the skin lesion.</p>
+            </div>
+        </div>
+        
+        <form action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data" id="diagnosticForm" class="diagnostic-form">
+            <!-- Patient Metadata Section -->
+            <div class="form-section">
+                <h3 class="section-title">Patient Profile</h3>
+                
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="name">Full Name / Patient ID</label>
+                        <input type="text" id="name" name="name" placeholder="John Doe" required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-group col-3">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="0" max="120" placeholder="45" required>
+                    </div>
+                    
+                    <div class="form-group col-3">
+                        <label for="gender">Biological Sex</label>
+                        <select id="gender" name="gender" required>
+                            <option value="" disabled selected>Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upload Section -->
+            <div class="form-section">
+                <h3 class="section-title">Dermoscopic Image Upload</h3>
+                
+                <div class="upload-container" id="dropzone">
+                    <input type="file" id="imageInput" name="image" accept="image/*" required style="display: none;">
+                    <div class="upload-prompt" id="uploadPrompt">
+                        <span class="material-symbols-outlined upload-icon">add_photo_alternate</span>
+                        <h4>Drag and drop clinical image here</h4>
+                        <p>Supports JPEG, JPG, PNG, or WEBP (Max 16MB)</p>
+                        <button type="button" class="btn-secondary btn-sm" id="browseBtn">Browse Files</button>
+                    </div>
+                    
+                    <div class="preview-container hidden" id="previewContainer">
+                        <img src="" alt="Lesion Preview" id="imagePreview">
+                        <button type="button" class="btn-remove-image" id="removeImgBtn" title="Remove image">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Submit Actions -->
+            <div class="form-actions">
+                <a href="{{ url_for('dashboard') }}" class="btn-cancel">Cancel</a>
+                <button type="submit" class="btn-primary" id="submitBtn">
+                    <span class="material-symbols-outlined">science</span>
+                    <span>Run VGG16 Classifier</span>
+                </button>
+            </div>
+        </form>
+        
+        <!-- Loading Overlay during execution -->
+        <div class="loading-overlay hidden" id="loadingOverlay">
+            <div class="loading-box">
+                <div class="spinner"></div>
+                <h3>Processing Dermoscopic Image</h3>
+                <p>Initializing VGG16 layers and running matrix multiplications. Please wait...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts for drag-and-drop, image preview, and load screen -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('imageInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeImgBtn = document.getElementById('removeImgBtn');
+        const form = document.getElementById('diagnosticForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        // Open file selector when clicking button or dropzone prompt
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+        
+        dropzone.addEventListener('click', (e) => {
+            // Do not trigger file picker if clicking on the remove button or inside the preview
+            if (e.target.closest('#removeImgBtn') || e.target.closest('#previewContainer')) {
+                return;
+            }
+            if (previewContainer.classList.contains('hidden')) {
+                fileInput.click();
+            }
+        });
+        
+        // Handle file drop & selection
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('drag-over');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('drag-over');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file.');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    uploadPrompt.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Remove selected image
+        removeImgBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            imagePreview.src = '';
+            previewContainer.classList.add('hidden');
+            uploadPrompt.classList.remove('hidden');
+        });
+        
+        // Form submission loading effect
+        form.addEventListener('submit', (e) => {
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                alert('Please upload a dermoscopic image.');
+                return;
+            }
+            // Display loading overlay
+            loadingOverlay.classList.remove('hidden');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient History Database{% endblock %}
+{% block header_title %}Patient Record Database{% endblock %}
+
+{% block content %}
+<div class="patients-wrapper fade-in">
+    <!-- Filters & Search Toolbar -->
+    <div class="toolbar-panel glass-panel">
+        <form action="{{ url_for('patients') }}" method="GET" class="toolbar-form">
+            <div class="search-input-wrapper">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" name="search" placeholder="Search patients by name..." value="{{ search }}">
+            </div>
+            
+            <div class="filter-select-wrapper">
+                <label for="risk-filter">Risk Level:</label>
+                <select name="risk" id="risk-filter" onchange="this.form.submit()">
+                    <option value="" {% if not risk %}selected{% endif %}>All Records</option>
+                    <option value="High Risk" {% if risk == 'High Risk' %}selected{% endif %}>High Risk (Malignant)</option>
+                    <option value="Low Risk" {% if risk == 'Low Risk' %}selected{% endif %}>Low Risk (Benign)</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn-primary btn-sm">Apply Filters</button>
+            {% if search or risk %}
+            <a href="{{ url_for('patients') }}" class="btn-secondary btn-sm">Clear Filters</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Database Grid Card -->
+    <div class="grid-card glass-panel mt-4">
+        <div class="card-header">
+            <h3>Archived Clinical Records</h3>
+            <span class="records-count font-bold">{{ patients|length }} Records Found</span>
+        </div>
+        
+        <div class="table-responsive">
+            {% if patients %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient Name</th>
+                        <th>Age / Sex</th>
+                        <th>Neural Prediction</th>
+                        <th>Risk Metric</th>
+                        <th>Confidence</th>
+                        <th>Scan Date</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in patients %}
+                    <tr>
+                        <td class="text-muted">#{{ patient.id }}</td>
+                        <td class="font-bold">{{ patient.name }}</td>
+                        <td>{{ patient.age }} / {{ patient.gender }}</td>
+                        <td>
+                            <span class="badge {% if patient.prediction == 'Malignant' %}badge-danger{% else %}badge-success{% endif %}">
+                                {{ patient.prediction }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if patient.risk_level == 'High Risk' %}badge-danger-dim{% else %}badge-success-dim{% endif %}">
+                                {{ patient.risk_level }}
+                            </span>
+                        </td>
+                        <td>{{ patient.confidence }}%</td>
+                        <td>{{ patient.created_at }}</td>
+                        <td class="text-right actions-cell">
+                            <a href="{{ url_for('result', patient_id=patient.id) }}" class="btn-icon" title="View Full Diagnosis Report">
+                                <span class="material-symbols-outlined text-primary">analytics</span>
+                            </a>
+                            
+                            <form action="{{ url_for('delete_patient', patient_id=patient.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to permanently delete patient {{ patient.name }}\'s diagnostic record and uploaded image? This action cannot be undone.');">
+                                <button type="submit" class="btn-icon btn-delete" title="Delete Patient Record">
+                                    <span class="material-symbols-outlined text-danger">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-icon">folder_open</span>
+                <p class="empty-title">No Patient Records Found</p>
+                <p class="empty-desc">No database logs match your search filters, or no scans have been performed yet.</p>
+                {% if search or risk %}
+                <a href="{{ url_for('patients') }}" class="btn-secondary btn-sm">Clear Active Filters</a>
+                {% else %}
+                <a href="{{ url_for('predict') }}" class="btn-primary btn-sm">
+                    <span class="material-symbols-outlined">add_photo_alternate</span>
+                    <span>Start New Scan</span>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

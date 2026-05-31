@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Diagnostic Report — {{ patient.name }}{% endblock %}
+{% block header_title %}Diagnostic Analysis Report{% endblock %}
+
+{% block content %}
+<div class="result-wrapper fade-in">
+    <!-- Action Row -->
+    <div class="action-bar mb-4">
+        <a href="{{ url_for('patients') }}" class="btn-secondary btn-sm">
+            <span class="material-symbols-outlined">arrow_back</span>
+            <span>Back to Records</span>
+        </a>
+        <button onclick="window.print();" class="btn-primary btn-sm">
+            <span class="material-symbols-outlined">print</span>
+            <span>Print Report</span>
+        </button>
+    </div>
+    
+    <div class="report-container">
+        <!-- Patient Info & Model Stats Panel -->
+        <div class="report-sidebar glass-panel">
+            <h3 class="panel-title border-bottom pb-2">Patient Profile</h3>
+            <div class="profile-details">
+                <div class="profile-row">
+                    <span class="detail-label">Name:</span>
+                    <span class="detail-value font-bold">{{ patient.name }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Age:</span>
+                    <span class="detail-value">{{ patient.age }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Sex:</span>
+                    <span class="detail-value">{{ patient.gender }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Record ID:</span>
+                    <span class="detail-value">#{{ patient.id }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Scan Date:</span>
+                    <span class="detail-value">{{ patient.created_at }}</span>
+                </div>
+            </div>
+            
+            <h3 class="panel-title border-bottom pb-2 mt-4">Model Parameters</h3>
+            <div class="profile-details">
+                <div class="profile-row">
+                    <span class="detail-label">Algorithm:</span>
+                    <span class="detail-value">VGG16 Base Model</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Classification:</span>
+                    <span class="detail-value">Binary Convolutional</span>
+                </div>
+                <div class="profile-row">
+                    <span class="detail-label">Decision Boundary:</span>
+                    <span class="detail-value">0.2976 (Precision-Recall)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diagnostic Summary Area -->
+        <div class="report-main-col">
+            <!-- Classification Banner -->
+            <div class="diagnostic-banner glass-panel {% if patient.prediction == 'Malignant' %}banner-danger{% else %}banner-success{% endif %}">
+                <div class="banner-body">
+                    <div class="banner-heading">
+                        <span class="material-symbols-outlined banner-icon">
+                            {% if patient.prediction == 'Malignant' %}warning_amber{% else %}verified_user{% endif %}
+                        </span>
+                        <div>
+                            <p class="banner-tag">NEURAL CLASSIFICATION DETECTED</p>
+                            <h2>{{ patient.prediction }}</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-block">
+                        <div class="metric-score">
+                            <span class="score-num">{{ patient.confidence }}%</span>
+                            <span class="score-label">Confidence</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="gauge-container">
+                    <div class="gauge-bar">
+                        <div class="gauge-fill {% if patient.prediction == 'Malignant' %}bg-danger{% else %}bg-success{% endif %}" style="width: {{ patient.confidence }}%"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>0% Probability</span>
+                        <span>50%</span>
+                        <span>100% Probability</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side by Side Details (Uploaded image + clinical summary) -->
+            <div class="report-details-grid">
+                <div class="details-card glass-panel text-center">
+                    <h3 class="card-title">Dermoscopic Source Image</h3>
+                    <div class="analyzed-image-wrapper">
+                        <img src="{{ url_for('static', filename='uploads/' + patient.image_path) }}" alt="Patient skin lesion image" class="analyzed-image">
+                    </div>
+                </div>
+                
+                <div class="details-card glass-panel">
+                    <h3 class="card-title">Clinical Recommendations</h3>
+                    {% if patient.prediction == 'Malignant' %}
+                    <div class="clinical-box bg-red-dim border-red">
+                        <h4 class="text-danger font-bold d-flex align-items-center">
+                            <span class="material-symbols-outlined mr-2">emergency</span> High-Risk Lesion Alert
+                        </h4>
+                        <p>Our VGG16 network classifies this lesion as **Malignant** with a probability output above the clinical decision boundary. </p>
+                        <ul class="clinical-list mt-2">
+                            <li><strong>Action:</strong> Refer patient immediately for a professional dermatologist consultation.</li>
+                            <li><strong>Biopsy:</strong> An excisional biopsy is highly recommended to confirm diagnosis histopathologically.</li>
+                            <li><strong>Monitoring:</strong> Do not rely solely on automated diagnostics. Ensure standard physical inspections are completed.</li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="clinical-box bg-green-dim border-green">
+                        <h4 class="text-success font-bold d-flex align-items-center">
+                            <span class="material-symbols-outlined mr-2">check_circle</span> Low-Risk Lesion Summary
+                        </h4>
+                        <p>Our VGG16 network classifies this lesion as **Benign** with high confidence. The likelihood of malignancy falls below our critical decision boundary.</p>
+                        <ul class="clinical-list mt-2">
+                            <li><strong>Action:</strong> No emergency referral required unless physical inspection indicates atypical lesion behavior.</li>
+                            <li><strong>Monitoring:</strong> Suggest patient completes routine visual scans every 3-6 months.</li>
+                            <li><strong>Guidelines:</strong> Instruct patient on the ABCDE melanoma checking method (detailed below).</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- ABCDE Guidelines -->
+            <div class="abcde-guide-card glass-panel mt-4">
+                <h3 class="card-title">The ABCDE Guide of Melanoma Identification</h3>
+                <p class="guide-intro mb-3">Educate patients to perform routine body checks. Look for the following clinical warnings:</p>
+                <div class="abcde-grid">
+                    <div class="abcde-item">
+                        <div class="abcde-letter">A</div>
+                        <div class="abcde-info">
+                            <h5>Asymmetry</h5>
+                            <p>One half of the spot or mole does not match the other half in shape.</p>
+                        </div>
+                    </div>
+                    <div class="abcde-item">
+                        <div class="abcde-letter">B</div>
+                        <div class="abcde-info">
+                            <h5>Border</h5>
+                            <p>The edges are irregular, ragged, notched, blurred, or poorly defined.</p>
+                        </div>
+                    </div>
+                    <div class="abcde-item">
+                        <div class="abcde-letter">C</div>
+                        <div class="abcde-info">
+                            <h5>Color</h5>
+                            <p>The color is not uniform; it includes shades of brown, black, red, white, or blue.</p>
+                        </div>
+                    </div>
+                    <div class="abcde-item">
+                        <div class="abcde-letter">D</div>
+                        <div class="abcde-info">
+                            <h5>Diameter</h5>
+                            <p>The spot is larger than 6 millimeters across (about the size of a pencil eraser).</p>
+                        </div>
+                    </div>
+                    <div class="abcde-item">
+                        <div class="abcde-letter">E</div>
+                        <div class="abcde-info">
+                            <h5>Evolving</h5>
+                            <p>The mole is changing in size, shape, color, elevation, or starts bleeding or itching.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SkinAI{% endblock %} — AI-Powered Skin Cancer Detection</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <!-- App Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        {% if session.get('user_id') %}
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <div class="sidebar-brand">
+                <span class="material-symbols-outlined brand-icon">science</span>
+                <span class="brand-text">Skin<span>AI</span></span>
+            </div>
+            
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    <span class="material-symbols-outlined">account_circle_filled</span>
+                </div>
+                <div class="user-info">
+                    <p class="user-name">{{ session.get('username') }}</p>
+                    <p class="user-role">Clinical Practitioner</p>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="{% if request.path == url_for('dashboard') %}active{% endif %}">
+                        <a href="{{ url_for('dashboard') }}">
+                            <span class="material-symbols-outlined">dashboard</span>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="{% if request.path == url_for('predict') %}active{% endif %}">
+                        <a href="{{ url_for('predict') }}">
+                            <span class="material-symbols-outlined">biotech</span>
+                            <span>Run Diagnostic</span>
+                        </a>
+                    </li>
+                    <li class="{% if request.path == url_for('patients') %}active{% endif %}">
+                        <a href="{{ url_for('patients') }}">
+                            <span class="material-symbols-outlined">group</span>
+                            <span>Patient History</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="btn-logout">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Sign Out</span>
+                </a>
+            </div>
+        </aside>
+        {% endif %}
+        
+        <!-- Main Content Area -->
+        <main class="app-main {% if not session.get('user_id') %}auth-layout{% endif %}">
+            <!-- Header for mobile navigation & notifications -->
+            {% if session.get('user_id') %}
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>{% block header_title %}Overview{% endblock %}</h1>
+                </div>
+                <div class="header-actions">
+                    <div class="header-date" id="currentDate"></div>
+                </div>
+            </header>
+            {% endif %}
+            
+            <!-- Alert Messages -->
+            <div class="alert-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} fade-in">
+                                <span class="material-symbols-outlined alert-icon">
+                                    {% if category == 'success' %}check_circle
+                                    {% elif category == 'error' %}error
+                                    {% elif category == 'warning' %}warning
+                                    {% else %}info
+                                    {% endif %}
+                                </span>
+                                <span class="alert-message">{{ message }}</span>
+                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            <!-- Viewport Body -->
+            <section class="app-content">
+                {% block content %}{% endblock %}
+            </section>
+            
+            <!-- Footer -->
+            <footer class="app-footer-bar">
+                <p>&copy; 2026 SkinAI Diagnostic Systems. Powered by VGG16 Deep Learning. For clinical reference only.</p>
+            </footer>
+        </main>
+    </div>
+    
+    <!-- Inline Date Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateEl = document.getElementById('currentDate');
+            if (dateEl) {
+                const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+                dateEl.textContent = new Date().toLocaleDateString('en-US', options);
+            }
+        });
+    </script>
+</body>
+</html>
